@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3001;
 
 // ----- CORS -----
 const allowedOrigins = [
-  'http://localhost:5173', // dev frontend
+  'http://localhost:5173',
+  'https://main.d30jlxmuqyna0j.amplifyapp.com', // dev frontend
 ];
 
 if (process.env.FRONTEND_URL) {
