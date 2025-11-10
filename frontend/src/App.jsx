@@ -8,10 +8,13 @@ import './App.css';
 const INITIAL_INDICATORS = [
   { id: 'ema', name: 'EMA', color: '#f7aef8' },
   { id: 'bb', name: 'Bollinger Bands', color: '#f7aef8' },
-  { id: 'macd', name: 'MACD' },
-  { id: 'rsi', name: 'RSI', color: '#b388eb' },
-  { id: 'stoch', name: 'Stochastic' },
+  { id: 'macd', name: 'MACD' , color: '#f7aef8' },
+  { id: 'rsi', name: 'RSI', color: '#f7aef8' },
+  { id: 'stoch', name: 'Stochastic' , color: '#f7aef8' },
 ];
+
+// ✅ ดึง URL backend จาก env (มี default เผื่อยังไม่ได้ตั้ง)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function App() {
   const [rawData, setRawData] = useState(null);
@@ -33,18 +36,36 @@ function App() {
     try {
       const ema = ti.EMA.calculate({ period: emaPeriod, values: rawData.prices });
       const rsi = ti.RSI.calculate({ period: rsiPeriod, values: rawData.prices });
-      const macd = ti.MACD.calculate({ values: rawData.prices, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9, SimpleMAOscillator: false, SimpleMASignal: false });
-      const bb = ti.BollingerBands.calculate({ period: 20, values: rawData.prices, stdDev: 2 });
-      const stochastic = ti.Stochastic.calculate({ high: rawData.highPrices, low: rawData.lowPrices, close: rawData.prices, period: 14, signalPeriod: 3 });
+      const macd = ti.MACD.calculate({
+        values: rawData.prices,
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
+        SimpleMAOscillator: false,
+        SimpleMASignal: false,
+      });
+      const bb = ti.BollingerBands.calculate({
+        period: 20,
+        values: rawData.prices,
+        stdDev: 2,
+      });
+      const stochastic = ti.Stochastic.calculate({
+        high: rawData.highPrices,
+        low: rawData.lowPrices,
+        close: rawData.prices,
+        period: 14,
+        signalPeriod: 3,
+      });
+
       setChartData({
         labels: rawData.labels,
         prices: rawData.prices,
-        indicators: { ema, rsi, macd, bb, stochastic }
+        indicators: { ema, rsi, macd, bb, stochastic },
       });
       setError('');
     } catch (e) {
-      console.error("Error calculating indicators:", e);
-      setError("Calculation Error: Please check data file or indicator periods.");
+      console.error('Error calculating indicators:', e);
+      setError('Calculation Error: Please check data file or indicator periods.');
       setChartData(null);
     }
   }, [rawData, emaPeriod, rsiPeriod]);
@@ -55,33 +76,44 @@ function App() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+    setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
     setIsLoading(true);
     setError('');
     setRawData(null);
     setChartData(null);
+
     const formData = new FormData();
     formData.append('file', file);
+
     try {
-      const response = await axios.post('http://localhost:3001/api/upload', formData);
+      const response = await axios.post(
+        `${API_URL}/api/upload`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
       setRawData(response.data);
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.error || 'Failed to process the file.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleIndicatorToggle = (indicatorId) => setActiveIndicators(prev => ({ ...prev, [indicatorId]: !prev[indicatorId] }));
+  const handleIndicatorToggle = (indicatorId) =>
+    setActiveIndicators(prev => ({ ...prev, [indicatorId]: !prev[indicatorId] }));
 
   const handleColorChange = (indicatorId, newColor) => {
-    setIndicators(prevIndicators => 
-      prevIndicators.map(ind => 
+    setIndicators(prevIndicators =>
+      prevIndicators.map(ind =>
         ind.id === indicatorId ? { ...ind, color: newColor } : ind
       )
     );
@@ -102,26 +134,60 @@ function App() {
 
   const getMainChartData = () => {
     if (!chartData) return null;
-    let datasets = [{
-      label: 'Price', data: chartData.prices, borderColor: priceColor, borderWidth: 2, pointRadius: 0
-    }];
-    
+
+    const datasets = [
+      {
+        label: 'Price',
+        data: chartData.prices,
+        borderColor: priceColor,
+        borderWidth: 2,
+        pointRadius: 0,
+      },
+    ];
+
     if (activeIndicators.ema && chartData.indicators.ema) {
       const emaColor = indicators.find(ind => ind.id === 'ema').color;
-      datasets.push({ label: `EMA (${emaPeriod})`, data: chartData.indicators.ema, borderColor: emaColor, borderWidth: 1.5, pointRadius: 0 });
+      datasets.push({
+        label: `EMA (${emaPeriod})`,
+        data: chartData.indicators.ema,
+        borderColor: emaColor,
+        borderWidth: 1.5,
+        pointRadius: 0,
+      });
     }
+
     if (activeIndicators.bb && chartData.indicators.bb) {
       const { bb } = chartData.indicators;
       const bbColor = indicators.find(ind => ind.id === 'bb').color;
       datasets.push(
-        { label: 'BB Upper', data: bb.map(d => d.upper), borderColor: '#fdc5f5', borderWidth: 1, pointRadius: 0 },
-        { label: 'BB Middle', data: bb.map(d => d.middle), borderColor: bbColor, borderWidth: 1.5, pointRadius: 0, borderDash: [5, 5] },
-        { label: 'BB Lower', data: bb.map(d => d.lower), borderColor: '#fdc5f5', borderWidth: 1, pointRadius: 0 }
+        {
+          label: 'BB Upper',
+          data: bb.map(d => d.upper),
+          borderColor: '#fdc5f5',
+          borderWidth: 1,
+          pointRadius: 0,
+        },
+        {
+          label: 'BB Middle',
+          data: bb.map(d => d.middle),
+          borderColor: bbColor,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          borderDash: [5, 5],
+        },
+        {
+          label: 'BB Lower',
+          data: bb.map(d => d.lower),
+          borderColor: '#fdc5f5',
+          borderWidth: 1,
+          pointRadius: 0,
+        }
       );
     }
+
     return { labels: chartData.labels, datasets };
   };
-  
+
   const getRsiData = () => {
     if (!chartData || !chartData.indicators.rsi) return null;
     const { rsi } = chartData.indicators;
@@ -129,7 +195,15 @@ function App() {
     const labels = rsi.length > 0 ? chartData.labels.slice(-rsi.length) : [];
     return {
       labels,
-      datasets: [{ label: `RSI (${rsiPeriod})`, data: rsi, borderColor: rsiColor, borderWidth: 1.5, pointRadius: 0 }]
+      datasets: [
+        {
+          label: `RSI (${rsiPeriod})`,
+          data: rsi,
+          borderColor: rsiColor,
+          borderWidth: 1.5,
+          pointRadius: 0,
+        },
+      ],
     };
   };
 
@@ -140,13 +214,33 @@ function App() {
     return {
       labels,
       datasets: [
-        { type: 'bar', label: 'Histogram', data: macd.map(d => d.histogram), backgroundColor: (ctx) => (ctx.raw >= 0 ? '#72ddf780' : '#f7aef880') },
-        { type: 'line', label: 'MACD', data: macd.map(d => d.MACD), borderColor: '#8093f1', borderWidth: 1.5, pointRadius: 0 },
-        { type: 'line', label: 'Signal', data: macd.map(d => d.signal), borderColor: '#f7aef8', borderWidth: 1.5, pointRadius: 0 }
-      ]
+        {
+          type: 'bar',
+          label: 'Histogram',
+          data: macd.map(d => d.histogram),
+          backgroundColor: ctx =>
+            ctx.raw >= 0 ? '#72ddf780' : '#f7aef880',
+        },
+        {
+          type: 'line',
+          label: 'MACD',
+          data: macd.map(d => d.MACD),
+          borderColor: '#8093f1',
+          borderWidth: 1.5,
+          pointRadius: 0,
+        },
+        {
+          type: 'line',
+          label: 'Signal',
+          data: macd.map(d => d.signal),
+          borderColor: '#f7aef8',
+          borderWidth: 1.5,
+          pointRadius: 0,
+        },
+      ],
     };
   };
-  
+
   const getStochasticData = () => {
     if (!chartData || !chartData.indicators.stochastic) return null;
     const { stochastic } = chartData.indicators;
@@ -154,14 +248,27 @@ function App() {
     return {
       labels,
       datasets: [
-        { label: '%K', data: stochastic.map(d => d.k), borderColor: '#8093f1', borderWidth: 1.5, pointRadius: 0 },
-        { label: '%D', data: stochastic.map(d => d.d), borderColor: '#f7aef8', borderWidth: 1.5, pointRadius: 0, borderDash: [5, 5] }
-      ]
+        {
+          label: '%K',
+          data: stochastic.map(d => d.k),
+          borderColor: '#8093f1',
+          borderWidth: 1.5,
+          pointRadius: 0,
+        },
+        {
+          label: '%D',
+          data: stochastic.map(d => d.d),
+          borderColor: '#f7aef8',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          borderDash: [5, 5],
+        },
+      ],
     };
   };
 
   return (
-    <div className={rawData ? "container loaded" : "container initial"}>
+    <div className={rawData ? 'container loaded' : 'container initial'}>
       <header className="header">
         <h1>Pro Chart Visualizer</h1>
         <button onClick={toggleTheme} className="theme-toggle-button">
@@ -171,9 +278,14 @@ function App() {
           <label htmlFor="file-upload" className="file-input-label">
             {isLoading ? 'Processing...' : 'Select Chart File'}
           </label>
-          <input id="file-upload" type="file" onChange={handleFileChange} disabled={isLoading} />
+          <input
+            id="file-upload"
+            type="file"
+            onChange={handleFileChange}
+            disabled={isLoading}
+          />
         </div>
-        {error && <p style={{color: '#ef5050'}}>{error}</p>}
+        {error && <p style={{ color: '#ef5050' }}>{error}</p>}
       </header>
 
       {rawData && chartData && (
@@ -181,68 +293,107 @@ function App() {
           <div className="settings-panel">
             <div className="setting-item">
               <label htmlFor="price-color">Price Color</label>
-              <input 
-                type="color" 
+              <input
+                type="color"
                 id="price-color"
                 value={priceColor}
                 onChange={handlePriceColorChange}
-                className="color-picker-main" 
+                className="color-picker-main"
               />
             </div>
             <div className="setting-item">
               <label htmlFor="ema-period">EMA Period (1-200)</label>
-              <input 
-                type="number" 
-                id="ema-period" 
+              <input
+                type="number"
+                id="ema-period"
                 value={emaPeriod}
                 onChange={(e) => {
-                  const value = Math.min(200, Math.max(1, parseInt(e.target.value) || 1));
+                  const value = Math.min(
+                    200,
+                    Math.max(1, parseInt(e.target.value) || 1)
+                  );
                   setEmaPeriod(value);
                 }}
               />
             </div>
             <div className="setting-item">
               <label htmlFor="rsi-period">RSI Period (1-50)</label>
-              <input 
-                type="number" 
-                id="rsi-period" 
+              <input
+                type="number"
+                id="rsi-period"
                 value={rsiPeriod}
                 onChange={(e) => {
-                  const value = Math.min(50, Math.max(1, parseInt(e.target.value) || 1));
+                  const value = Math.min(
+                    50,
+                    Math.max(1, parseInt(e.target.value) || 1)
+                  );
                   setRsiPeriod(value);
                 }}
               />
             </div>
           </div>
+
           <div className="controls">
             {indicators.map(ind => (
               <div key={ind.id} className="control-toggle">
                 {ind.color && (
-                  <input 
-                    type="color" 
+                  <input
+                    type="color"
                     value={ind.color}
-                    onChange={(e) => handleColorChange(ind.id, e.target.value)}
+                    onChange={(e) =>
+                      handleColorChange(ind.id, e.target.value)
+                    }
                     className="color-picker"
                   />
                 )}
-                <input type="checkbox" id={ind.id} checked={activeIndicators[ind.id]} onChange={() => handleIndicatorToggle(ind.id)} />
+                <input
+                  type="checkbox"
+                  id={ind.id}
+                  checked={activeIndicators[ind.id]}
+                  onChange={() => handleIndicatorToggle(ind.id)}
+                />
                 <label htmlFor={ind.id}>{ind.name}</label>
               </div>
             ))}
           </div>
+
           <div className="chart-area">
-            <button onClick={handleSaveChart} className="save-chart-button">
+            <button
+              onClick={handleSaveChart}
+              className="save-chart-button"
+            >
               Save Chart
             </button>
-            <MainChart 
-              ref={mainChartRef} 
-              key={theme} 
-              theme={theme} 
-              chartData={getMainChartData()} 
+            <MainChart
+              ref={mainChartRef}
+              key={theme}
+              theme={theme}
+              chartData={getMainChartData()}
             />
-            {activeIndicators.macd && <IndicatorChart key={`${theme}-macd`} theme={theme} chartData={getMacdData()} title="MACD" />}
-            {activeIndicators.rsi && <IndicatorChart key={`${theme}-rsi`} theme={theme} chartData={getRsiData()} title="RSI" />}
-            {activeIndicators.stoch && <IndicatorChart key={`${theme}-stoch`} theme={theme} chartData={getStochasticData()} title="Stochastic (14, 3)" />}
+            {activeIndicators.macd && (
+              <IndicatorChart
+                key={`${theme}-macd`}
+                theme={theme}
+                chartData={getMacdData()}
+                title="MACD"
+              />
+            )}
+            {activeIndicators.rsi && (
+              <IndicatorChart
+                key={`${theme}-rsi`}
+                theme={theme}
+                chartData={getRsiData()}
+                title="RSI"
+              />
+            )}
+            {activeIndicators.stoch && (
+              <IndicatorChart
+                key={`${theme}-stoch`}
+                theme={theme}
+                chartData={getStochasticData()}
+                title="Stochastic (14, 3)"
+              />
+            )}
           </div>
         </>
       )}
