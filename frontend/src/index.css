@@ -1,0 +1,37 @@
+
+:root {
+  /* --- 🎨 Dark Theme (Default) --- */
+  --bg-dark: #1a1a2e; 
+  --bg-light: #242444;
+  --border-color: #4a4a70;
+  --text-primary: #e0e0ff;
+  --text-secondary: #a0a0c0;
+  --color-pink-light: #fdc5f5;
+  --color-pink-vibrant: #f7aef8;
+  --color-purple: #b388eb;
+  --color-blue: #8093f1;
+  --color-cyan: #72ddf7;
+}
+
+/* --- 💡 เพิ่มชุดสีสำหรับ Light Theme --- */
+.light-theme {
+  --bg-dark: #f0f2f5;      /* สีพื้นหลังหลัก (ขาวเทา) */
+  --bg-light: #ffffff;     /* สีพื้นหลังรอง (ขาว) */
+  --border-color: #d9d9d9;  /* สีเส้นขอบ (เทาอ่อน) */
+  --text-primary: #1f1f1f;   /* สีตัวอักษรหลัก (ดำเกือบสนิท) */
+  --text-secondary: #595959; /* สีตัวอักษรรอง (เทาเข้ม) */
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark); /* ใช้สีพื้นหลังจากตัวแปร */
+  color: var(--text-primary); /* ใช้สีตัวอักษรหลักจากตัวแปร */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  transition: background-color 0.3s, color 0.3s; /* << เพิ่ม animation ตอนเปลี่ยนธีม */
+}
+
+#root {
+  width: 100%;
+}
