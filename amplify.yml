@@ -1,0 +1,16 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci        # ติดตั้ง dependencies แบบ clean
+    build:
+      commands:
+        - npm run build # สร้างไฟล์ build ของ Vite
+  artifacts:
+    baseDirectory: dist # โฟลเดอร์ที่ได้จากการ build
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
